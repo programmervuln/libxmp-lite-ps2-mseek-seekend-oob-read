@@ -41,5 +41,30 @@ CWE
 CWE-125: Out-of-bounds Read
 Note
 This is a stack-based out-of-bounds read, not a stack buffer overflow (CWE-121). ASan stack-buffer-overflow label applies to both read and write out-of-bounds access on stack memory.
+
+vulnerable code snippet:
+int mseek(MFILE *m, long offset, int whence)
+{
+	switch (whence) {
+	default:
+	case SEEK_SET:
+		if (m->size >= 0 && (offset > m->size || offset < 0))
+			return -1;
+		m->pos = offset;
+		return 0;
+	case SEEK_CUR:
+		if (m->size >= 0 && (offset > CAN_READ(m) || offset < -m->pos))
+			return -1;
+		m->pos += offset;
+		return 0;
+	case SEEK_END:
+		if (m->size < 0)
+			return -1;
+		// Missing bounds check: new position may exceed m->size or become negative
+		m->pos = m->size + offset;
+		return 0;
+	}
+}
 plaintext
+
 
